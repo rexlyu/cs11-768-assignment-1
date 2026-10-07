@@ -133,10 +133,77 @@ INVOKE_SKILL_TOOL = {
 # TODO(3.1.a): Define an OpenAI function-tool schema named ``play_move``.
 # It must accept exactly one required string argument named ``move``, explain
 # that moves use UCI notation (for example e2e4), and reject extra arguments.
-PLAY_MOVE_TOOL: dict = {}
+PLAY_MOVE_TOOL: dict = {
+    "type": "function",
+    "function": {
+        "name": "play_move",
+        "description": (
+            "Play a move on the live chess board as White. Moves must use UCI notation "
+            "(for example 'e2e4' or 'e7e8q')."
+        ),
+        "strict": True,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "move": {
+                    "type": "string",
+                    "description": "The move to play in UCI notation (e.g. 'e2e4' or 'e7e8q').",
+                },
+            },
+            "required": ["move"],
+            "additionalProperties": False,
+        },
+    },
+}
 
 # TODO(3.3): Define the `simulate_move` tool, like the `play_move` tool.
-SIMULATE_MOVE_TOOL: dict = {}
+SIMULATE_MOVE_TOOL: dict = {
+    "type": "function",
+    "function": {
+        "name": "simulate_move",
+        "description": (
+            "Simulate a move or inspect a position from a FEN string without affecting the live game. "
+            "Pass FEN alone to inspect legal moves, or FEN and a UCI move to get the position after one ply."
+        ),
+        "strict": True,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "fen": {
+                    "type": "string",
+                    "description": "A complete six-field Forsyth-Edwards Notation (FEN) string.",
+                },
+                "move": {
+                    "type": ["string", "null"],
+                    "description": "Optional UCI move to simulate from the given FEN position.",
+                },
+            },
+            "required": ["fen", "move"],
+            "additionalProperties": False,
+        },
+    },
+}
 
 # TODO()
-RUN_PYTHON_TOOL: dict = {}
+RUN_PYTHON_TOOL: dict = {
+    "type": "function",
+    "function": {
+        "name": "run_python",
+        "description": (
+            "Run a Python code snippet inside the sandbox environment. The snippet has synchronous access to "
+            "simulate_move(fen, move=None) and play_move(move)."
+        ),
+        "strict": True,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "The Python code snippet to run.",
+                },
+            },
+            "required": ["code"],
+            "additionalProperties": False,
+        },
+    },
+}

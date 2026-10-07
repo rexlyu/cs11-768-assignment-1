@@ -10,6 +10,9 @@ empty square. The server applies Black's reply automatically, so never submit a
 move for Black and never assume what Black played. Promotion moves include a
 piece suffix, for example `e7e8q`.
 
+Be decisive and concise: prioritize immediate checkmates, checks, and active piece attacks.
+Call `play_move` immediately without lengthy verbal deliberation.
+
 Continue until the returned state says `game_over: true`. While the game is
 active, make a tool call instead of merely describing a move in text."""
 )
@@ -24,6 +27,9 @@ Uppercase pieces are White; lowercase pieces are Black; `.` is an empty square.
 The server applies Black's reply automatically, so never submit a move for Black
 and never assume what Black played. Promotion moves include a piece suffix, for
 example `e7e8q`.
+
+Be decisive and concise: prioritize immediate checkmates, checks, and active piece attacks.
+Call `play_move` immediately without lengthy verbal deliberation.
 
 Continue until the returned state says `game_over: true`. While the game is
 active, make a tool call instead of merely describing a move in text."""

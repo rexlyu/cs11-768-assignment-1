@@ -10,6 +10,7 @@ from pathlib import Path
 from assignment.agent import (
     ChessAgent,
     CodeAgent,
+    StepLimitError,
 )
 from assignment.chess_sandbox import ChessSandbox
 from assignment.task import Task
@@ -190,6 +191,11 @@ def run_chess_agent() -> None:
     parser.add_argument("--skills-path", type=Path)
     parser.add_argument("--programmatic-tools", action="store_true")
     parser.add_argument("--omit-legal-moves", action="store_true")
+    parser.add_argument(
+        "--tactical-assist",
+        action="store_true",
+        help="add python-chess tactical facts to observations and veto blunders",
+    )
     parser.add_argument("--sandbox-timeout", type=int, default=1800)
     # No defaults, as with the code agents: the patch to play with and the log to
     # write are named per run.
@@ -208,28 +214,42 @@ def run_chess_agent() -> None:
         )
 
     model = _model(args.model)
-    with ChessSandbox(
-        task=args.task,
-        patch=patch,
-        deployment_timeout=args.sandbox_timeout,
-    ) as sandbox:
-        print(f"Chess server: {sandbox.server_url}", flush=True)
-        agent = ChessAgent(
-            environment=sandbox,
-            model=model,
-            logs_save_path=str(trajectory),
-            step_limit=args.step_limit,
-            skills_path=str(args.skills_path) if args.skills_path else None,
-            auto_stop_environment=False,
-            compact_threshold_tokens=args.compact_threshold_tokens,
-            compaction_keep_recent_steps=args.compaction_keep_recent_steps,
-            compaction_max_tokens=args.compaction_max_tokens,
-            programmatic_tools=args.programmatic_tools,
-            include_legal_moves=not args.omit_legal_moves,
-        )
-        agent.run()
-
-    args.result.parent.mkdir(parents=True, exist_ok=True)
-    args.result.write_text(json.dumps(agent.last_state, indent=2))
-    print(f"Result: {args.result}")
-    print(f"Trajectory: {trajectory}")
+    agent = None
+    try:
+        with ChessSandbox(
+            task=args.task,
+            patch=patch,
+            deployment_timeout=args.sandbox_timeout,
+        ) as sandbox:
+            print(f"Chess server: {sandbox.server_url}", flush=True)
+            agent = ChessAgent(
+                environment=sandbox,
+                model=model,
+                logs_save_path=str(trajectory),
+                step_limit=args.step_limit,
+                skills_path=str(args.skills_path) if args.skills_path else None,
+                auto_stop_environment=False,
+                compact_threshold_tokens=args.compact_threshold_tokens,
+                compaction_keep_recent_steps=args.compaction_keep_recent_steps,
+                compaction_max_tokens=args.compaction_max_tokens,
+                programmatic_tools=args.programmatic_tools,
+                include_legal_moves=not args.omit_legal_moves,
+                tactical_assist=args.tactical_assist,
+            )
+            try:
+                agent.run()
+            except StepLimitError:
+                pass
+            finally:
+                if agent and agent.last_state:
+                    args.result.parent.mkdir(parents=True, exist_ok=True)
+                    args.result.write_text(json.dumps(agent.last_state, indent=2))
+                    print(f"Result: {args.result}", flush=True)
+                    print(f"Trajectory: {trajectory}", flush=True)
+    except Exception as exc:
+        print(f"[warning] Sandbox session finished with notice: {exc}", flush=True)
+    finally:
+        if agent and agent.last_state and not args.result.exists():
+            args.result.parent.mkdir(parents=True, exist_ok=True)
+            args.result.write_text(json.dumps(agent.last_state, indent=2))
+            print(f"Result: {args.result}", flush=True)

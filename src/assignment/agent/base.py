@@ -13,6 +13,8 @@ import math
 import os
 from pathlib import Path
 from typing import Any
+import re
+import yaml  # 检查环境是否已有 pyyaml，若无也可用基础切片解析
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -30,7 +32,26 @@ MAX_OBSERVATION_CHARS = 10_000
 # TODO(Part 2): Write instructions that make the model produce concise working
 # memory for a software agent. The prompt should preserve concrete progress,
 # failures, test results, constraints, and next steps without copying raw output.
-COMPACTION_SYSTEM_PROMPT = ""
+COMPACTION_SYSTEM_PROMPT = """You are an expert context compaction assistant for an autonomous software engineering agent.
+Your objective is to produce a concise, high-density, factual working memory from the preceding interaction history.
+
+Instructions:
+1. Preserve critical facts:
+   - Current task objective and specific constraints.
+   - Files inspected, created, modified, or deleted (with relevant paths).
+   - Key shell commands executed and their concrete results.
+   - Specific code edits, functions modified, and key logic changed.
+   - Tests run, including passing and failing test cases and specific assertions.
+   - Failed approaches, errors encountered, and dead ends (so they are not repeated).
+   - Known blockers, unsolved problems, and immediate next actions.
+2. Be concise and eliminate noise:
+   - Do NOT copy raw terminal output, full stack traces, or large file contents verbatim.
+   - Summarize observations into concise factual takeaways (e.g., 'grep confirmed Foo is in bar.py:42', 'test failed with TypeError on line 12').
+3. Format as structured bullet points:
+   - Objective & Constraints
+   - Repository State & Files Explored / Modified
+   - Hypotheses, Tests & Findings
+   - Blockers & Next Actions"""
 
 
 class StepLimitError(Exception):
@@ -152,6 +173,7 @@ class Agent:
 
         # TODO(1.1.a): Add machinery to maintain agent state as it takes actions
         # and observes the results.
+        self.messages: list[dict[str, Any]] = []
 
     def load_skills(self, skills_path: Path) -> dict[str, dict[str, str]]:
         """Load the skill folders exposed to this agent."""
@@ -164,7 +186,50 @@ class Agent:
         # ``content`` of the skill file for ``invoke_skill``. Reject duplicate
         # names and malformed or missing frontmatter with a clear
         # ``ValueError``.
-        raise NotImplementedError
+        skills_path = Path(skills_path)
+        if not skills_path.exists() or not skills_path.is_dir():
+            raise ValueError(f"Skills path does not exist or is not a directory: {skills_path}")
+
+        skills: dict[str, dict[str, str]] = {}
+
+        # 遍历每个子目录寻找 SKILL.md
+        for child in sorted(skills_path.iterdir()):
+            if not child.is_dir():
+                continue
+            skill_file = child / "SKILL.md"
+            if not skill_file.is_file():
+                continue
+
+            raw_text = skill_file.read_text(encoding="utf-8")
+
+            # 匹配开头的 YAML frontmatter: --- ... ---
+            match = re.match(r"^---\s*\n(.*?)\n---\s*(?:\n|$)", raw_text, re.DOTALL)
+            if not match:
+                raise ValueError(f"Missing or malformed frontmatter in {skill_file}")
+
+            frontmatter_str = match.group(1).strip()
+            try:
+                # 也可以用 yaml.safe_load(frontmatter_str)
+                data = yaml.safe_load(frontmatter_str)
+                if not isinstance(data, dict):
+                    raise ValueError("Frontmatter is not a mapping")
+            except Exception as e:
+                raise ValueError(f"Malformed YAML in {skill_file}: {e}") from e
+
+            name = data.get("name")
+            description = data.get("description")
+            if not name or not isinstance(name, str):
+                raise ValueError(f"Missing or invalid 'name' in {skill_file}")
+
+            if name in skills:
+                raise ValueError(f"Duplicate skill name detected: {name}")
+
+            skills[name] = {
+                "metadata": frontmatter_str,
+                "content": raw_text.strip(),
+            }
+
+        return skills
 
     def query_language_model(self) -> dict[str, Any]:
         """Send one tool-enabled Chat Completions request and normalize it."""
@@ -227,7 +292,30 @@ class Agent:
 
         # You want to be careful about which attributes of the class you modify
         # here as they may also be handled by the subclasses.
-        raise NotImplementedError
+        system_content = self.system_prompt or ""
+
+        # If skills are loaded and not already embedded in system prompt, append catalog
+        if (
+            getattr(self, "skills", None)
+            and "<skills>" not in system_content
+            and "Available Skills" not in system_content
+        ):
+            catalog = "\n\n".join(skill["metadata"] for skill in self.skills.values())
+            system_content += (
+                "\n\nReusable skills are available. Call `invoke_skill` with a "
+                "skill's name to load its instructions, and follow them in place "
+                f"of your default approach.\n\n<skills>\n{catalog}\n</skills>\n"
+            )
+
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": self.task_prompt or ""},
+        ]
+
+        if hasattr(self, "messages") and self.messages:
+            messages.extend(self.messages)
+
+        return messages
 
     def estimate_active_prompt_tokens(self) -> int:
         """Estimate the next prompt, calibrated by the provider's latest usage."""
@@ -265,9 +353,22 @@ class Agent:
         # with all linked tool observations. The resulting summary should change
         # what `build_prompt` emits, and reduce the length of the prompt.
 
-        raise NotImplementedError
+        assistant_count = 0
+        split_idx = 0
+        for idx in range(len(self.messages) - 1, -1, -1):
+            if self.messages[idx].get("role") == "assistant":
+                assistant_count += 1
+                if assistant_count == self.compaction_keep_recent_steps:
+                    split_idx = idx
+                    break
 
-        compaction_prompt = []
+        old_messages = self.messages[:split_idx]
+        retained_messages = self.messages[split_idx:]
+
+        compaction_prompt: list[dict[str, Any]] = [
+            {"role": "system", "content": COMPACTION_SYSTEM_PROMPT},
+            {"role": "user", "content": f"Task: {self.task_prompt}"},
+        ] + deepcopy(old_messages)
 
         ### Do not modify this section ###
         compaction_response = self.client.chat.completions.create(
@@ -280,6 +381,14 @@ class Agent:
 
         # Use `compaction_response` to update what `build_prompt` emits, but
         # DO NOT modify the object itself. Let the method return it unchanged.
+        choice = compaction_response.choices[0]
+        summary = choice.message.content or ""
+
+        summary_message = {
+            "role": "user",
+            "content": f"[Working Memory Summary of Previous Steps]:\n{summary}",
+        }
+        self.messages = [summary_message] + retained_messages
 
         ### Do not modify this section ###
         return compaction_prompt, compaction_response.model_dump(mode="json")
@@ -336,7 +445,25 @@ class Agent:
             # and handles the threshold, and tracks compaction events for
             # logging.
 
-            raise NotImplementedError
+            while not self.finished:
+                if self.steps_taken >= self.step_limit:
+                    raise StepLimitError(f"Exceeded step limit of {self.step_limit}.")
+
+                self.maybe_compact_context()
+
+                message = self.query_language_model()
+                self.messages.append(message)
+
+                tool_calls = message.get("tool_calls", [])
+                if tool_calls:
+                    observations = self.execute_tool_calls(tool_calls)
+                    self.messages.extend(observations)
+
+                if self.finished:
+                    break
+
+                if self.steps_taken >= self.step_limit:
+                    raise StepLimitError(f"Exceeded step limit of {self.step_limit}.")
         finally:
             # This block is provided infrastructure. Do not modify it: a
             # trajectory is required even when a run fails.
@@ -366,3 +493,4 @@ class Agent:
         # You do not need to implement anything here. This method is
         # domain-specific and implemented by the relevant subclasses
         raise NotImplementedError
+

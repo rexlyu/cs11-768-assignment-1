@@ -200,9 +200,15 @@ class ChessSandbox(Environment):
     def stop(self, timeout: float = 10) -> None:
         """Close the HTTP client, then tear the sandbox down."""
         if self._client is not None:
-            self._client.close()
+            try:
+                self._client.close()
+            except Exception:
+                pass
             self._client = None
-        super().stop(timeout=timeout)
+        try:
+            super().stop(timeout=timeout)
+        except Exception:
+            pass
 
 def main() -> None:
     """Launch a chess sandbox and keep it alive until the user exits."""

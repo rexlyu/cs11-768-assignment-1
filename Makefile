@@ -107,3 +107,6 @@ run-obs-gpt-oss-legal:
 
 run-chess-modal:
 	uv run assignment-chess-modal --task $(TASK) --sandbox-timeout $(CHESS_TIMEOUT) $(if $(wildcard $(PATCH)),--patch $(PATCH),)
+
+pack-submission:
+	uv run python scripts/package_submission.py

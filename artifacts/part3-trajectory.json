@@ -1,0 +1,197 @@
+{
+  "prompts": [
+    [
+      {
+        "role": "system",
+        "content": "You are playing White in a chess game against a deterministic Black bot.\n\nUse the `play_move` tool for every move. Pass exactly one UCI move listed in the\nlatest `legal_moves` field, then inspect the returned board before choosing the\nnext move. Uppercase pieces are White; lowercase pieces are Black; `.` is an\nempty square. The server applies Black's reply automatically, so never submit a\nmove for Black and never assume what Black played. Promotion moves include a\npiece suffix, for example `e7e8q`.\n\nBe decisive and concise: prioritize immediate checkmates, checks, and active piece attacks.\nCall `play_move` immediately without lengthy verbal deliberation.\n\nContinue until the returned state says `game_over: true`. While the game is\nactive, make a tool call instead of merely describing a move in text."
+      },
+      {
+        "role": "user",
+        "content": "Play this game as White. Choose one move from legal_moves and call play_move.\n\n<chess_state>\nstatus: Your turn\nturn: white\nin_check: False\ngame_over: False\nfen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\nhuman_move: (none)\nengine_move: (none)\nboard:\n    a b c d e f g h\n8 | r n b q k b n r | 8\n7 | p p p p p p p p | 7\n6 | . . . . . . . . | 6\n5 | . . . . . . . . | 5\n4 | . . . . . . . . | 4\n3 | . . . . . . . . | 3\n2 | P P P P P P P P | 2\n1 | R N B Q K B N R | 1\n    a b c d e f g h\nrecent_history: (none)\nlegal_moves: a2a3 a2a4 b1a3 b1c3 b2b3 b2b4 c2c3 c2c4 d2d3 d2d4 e2e3 e2e4 f2f3 f2f4 g1f3 g1h3 g2g3 g2g4 h2h3 h2h4\n</chess_state>"
+      }
+    ],
+    [
+      {
+        "role": "system",
+        "content": "You are playing White in a chess game against a deterministic Black bot.\n\nUse the `play_move` tool for every move. Pass exactly one UCI move listed in the\nlatest `legal_moves` field, then inspect the returned board before choosing the\nnext move. Uppercase pieces are White; lowercase pieces are Black; `.` is an\nempty square. The server applies Black's reply automatically, so never submit a\nmove for Black and never assume what Black played. Promotion moves include a\npiece suffix, for example `e7e8q`.\n\nBe decisive and concise: prioritize immediate checkmates, checks, and active piece attacks.\nCall `play_move` immediately without lengthy verbal deliberation.\n\nContinue until the returned state says `game_over: true`. While the game is\nactive, make a tool call instead of merely describing a move in text."
+      },
+      {
+        "role": "user",
+        "content": "Play this game as White. Choose one move from legal_moves and call play_move.\n\n<chess_state>\nstatus: Your turn\nturn: white\nin_check: False\ngame_over: False\nfen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\nhuman_move: (none)\nengine_move: (none)\nboard:\n    a b c d e f g h\n8 | r n b q k b n r | 8\n7 | p p p p p p p p | 7\n6 | . . . . . . . . | 6\n5 | . . . . . . . . | 5\n4 | . . . . . . . . | 4\n3 | . . . . . . . . | 3\n2 | P P P P P P P P | 2\n1 | R N B Q K B N R | 1\n    a b c d e f g h\nrecent_history: (none)\nlegal_moves: a2a3 a2a4 b1a3 b1c3 b2b3 b2b4 c2c3 c2c4 d2d3 d2d4 e2e3 e2e4 f2f3 f2f4 g1f3 g1h3 g2g3 g2g4 h2h3 h2h4\n</chess_state>"
+      },
+      {
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_1b7d1c19c40a4a7a95e06457",
+            "function": {
+              "arguments": "{\"move\": \"e2e4\"}",
+              "name": "play_move"
+            },
+            "type": "function",
+            "index": 0
+          }
+        ],
+        "reasoning": "The game just started. Let me play e2e4.",
+        "reasoning_details": [
+          {
+            "type": "reasoning.text",
+            "text": "The game just started. Let me play e2e4.",
+            "format": "unknown",
+            "index": 0
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "call_1b7d1c19c40a4a7a95e06457",
+        "content": "<chess_state>\nstatus: Your turn\nturn: white\nin_check: False\ngame_over: False\nfen: rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2\nhuman_move: e2e4\nengine_move: e7e5\nboard:\n    a b c d e f g h\n8 | r n b q k b n r | 8\n7 | p p p p . p p p | 7\n6 | . . . . . . . . | 6\n5 | . . . . p . . . | 5\n4 | . . . . P . . . | 4\n3 | . . . . . . . . | 3\n2 | P P P P . P P P | 2\n1 | R N B Q K B N R | 1\n    a b c d e f g h\nrecent_history: 1:e4 2:e5\nlegal_moves: a2a3 a2a4 b1a3 b1c3 b2b3 b2b4 c2c3 c2c4 d1e2 d1f3 d1g4 d1h5 d2d3 d2d4 e1e2 f1a6 f1b5 f1c4 f1d3 f1e2 f2f3 f2f4 g1e2 g1f3 g1h3 g2g3 g2g4 h2h3 h2h4\n</chess_state>"
+      }
+    ]
+  ],
+  "responses": [
+    {
+      "id": "gen-1791248957-XbjeIqpfkvX96fE2bkNe",
+      "choices": [
+        {
+          "finish_reason": "tool_calls",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": null,
+            "refusal": null,
+            "role": "assistant",
+            "annotations": null,
+            "audio": null,
+            "function_call": null,
+            "tool_calls": [
+              {
+                "id": "call_1b7d1c19c40a4a7a95e06457",
+                "function": {
+                  "arguments": "{\"move\": \"e2e4\"}",
+                  "name": "play_move"
+                },
+                "type": "function",
+                "index": 0
+              }
+            ],
+            "reasoning": "The game just started. Let me play e2e4.",
+            "reasoning_details": [
+              {
+                "type": "reasoning.text",
+                "text": "The game just started. Let me play e2e4.",
+                "format": "unknown",
+                "index": 0
+              }
+            ]
+          },
+          "native_finish_reason": "tool_calls"
+        }
+      ],
+      "created": 1791248957,
+      "model": "deepseek/deepseek-v4-flash-0731",
+      "object": "chat.completion",
+      "moderation": null,
+      "service_tier": null,
+      "system_fingerprint": null,
+      "usage": {
+        "completion_tokens": 61,
+        "prompt_tokens": 842,
+        "total_tokens": 903,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": 0,
+          "reasoning_tokens": 10,
+          "rejected_prediction_tokens": null,
+          "image_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cache_write_tokens": 0,
+          "cached_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost": 9.08784e-05,
+        "is_byok": false,
+        "cost_details": {
+          "upstream_inference_cost": 9.08784e-05,
+          "upstream_inference_prompt_cost": 1.27984e-05,
+          "upstream_inference_completions_cost": 7.808e-05
+        }
+      },
+      "provider": "Relace"
+    },
+    {
+      "id": "gen-1791248963-aRjjNvxpoYFPOpEgh1uR",
+      "choices": [
+        {
+          "finish_reason": "tool_calls",
+          "index": 0,
+          "logprobs": null,
+          "message": {
+            "content": null,
+            "refusal": null,
+            "role": "assistant",
+            "annotations": null,
+            "audio": null,
+            "function_call": null,
+            "tool_calls": [
+              {
+                "id": "call_991401ec172d4950bd6ea211",
+                "function": {
+                  "arguments": "{\"move\": \"g1f3\"}",
+                  "name": "play_move"
+                },
+                "type": "function",
+                "index": 0
+              }
+            ],
+            "reasoning": "Black played e5. I'll develop knight to f3.",
+            "reasoning_details": [
+              {
+                "type": "reasoning.text",
+                "text": "Black played e5. I'll develop knight to f3.",
+                "format": "unknown",
+                "index": 0
+              }
+            ]
+          },
+          "native_finish_reason": "tool_calls"
+        }
+      ],
+      "created": 1791248963,
+      "model": "deepseek/deepseek-v4-flash-0731",
+      "object": "chat.completion",
+      "moderation": null,
+      "service_tier": null,
+      "system_fingerprint": null,
+      "usage": {
+        "completion_tokens": 61,
+        "prompt_tokens": 1271,
+        "total_tokens": 1332,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": 0,
+          "reasoning_tokens": 11,
+          "rejected_prediction_tokens": null,
+          "image_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cache_write_tokens": 0,
+          "cached_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost": 9.73992e-05,
+        "is_byok": false,
+        "cost_details": {
+          "upstream_inference_cost": 9.73992e-05,
+          "upstream_inference_prompt_cost": 1.93192e-05,
+          "upstream_inference_completions_cost": 7.808e-05
+        }
+      },
+      "provider": "Relace"
+    }
+  ],
+  "compactions": []
+}

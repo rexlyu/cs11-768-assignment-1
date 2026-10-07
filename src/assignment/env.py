@@ -301,11 +301,19 @@ class Environment:
             sandbox = self.deployment._sandbox
             try:
                 await asyncio.wait_for(self.deployment.stop(), timeout=timeout)
+            except Exception:
+                pass
             finally:
                 if sandbox is not None:
-                    await asyncio.wait_for(sandbox.terminate.aio(), timeout=timeout)
+                    try:
+                        await asyncio.wait_for(sandbox.terminate.aio(), timeout=timeout)
+                    except Exception:
+                        pass
 
-        asyncio.run(_stop())
+        try:
+            asyncio.run(_stop())
+        except Exception:
+            pass
 
     def tunnel_url(self, port: int) -> str:
         """Return the public URL for a port forwarded when the sandbox started."""
@@ -328,4 +336,7 @@ class Environment:
 
     def __exit__(self, *exc):
         """Terminate the sandbox on leaving a `with` block, including on error."""
-        self.stop()
+        try:
+            self.stop()
+        except Exception:
+            pass

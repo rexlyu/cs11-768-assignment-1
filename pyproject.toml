@@ -25,6 +25,7 @@ assignment-play-chess = "assignment.cli:run_chess_agent"
 assignment-swebench-agent = "assignment.cli:run_swebench_agent"
 
 [tool.pytest.ini_options]
+pythonpath = ["src"]
 markers = ["modal: spins up a real Modal sandbox (slow, billable)"]
 addopts = "-m 'not modal'"
 # The chess_app submodule ships its own suite, which runs in the testbed against
